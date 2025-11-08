@@ -1,26 +1,31 @@
 package com.example.leduyquoc_recyclerview;
+
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
 
-    private List<Item> mItems;
     private Context mContext;
+    private List<Item> mItems;
+    private Runnable onCartChanged;
+    private DecimalFormat df = new DecimalFormat("#,###");
 
-    public ItemAdapter(Context context, List<Item> items) {
+    public ItemAdapter(Context context, List<Item> items, Runnable onCartChanged) {
         this.mContext = context;
         this.mItems = items;
+        this.onCartChanged = onCartChanged;
     }
 
     @NonNull
@@ -34,17 +39,41 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Item item = mItems.get(position);
+
+        holder.imageViewIcon.setImageResource(item.getIconResId());
         holder.textViewTitle.setText(item.getTitle());
+        holder.textViewPrice.setText("₫" + df.format(item.getPrice()));
+        holder.textViewDiscount.setText("₫" + df.format(item.getDiscountPrice()));
+        holder.textViewQuantity.setText(String.valueOf(item.getQuantity()));
+        holder.textViewTotal.setText("Tổng: ₫" + df.format(item.getTotalPrice()));
 
-        // Xử lý sự kiện click cho item view (toàn bộ item)
-        holder.itemView.setOnClickListener(v -> {
-            Toast.makeText(mContext, "Clicked: " + item.getTitle(), Toast.LENGTH_SHORT).show();
+        // Gạch ngang giá gốc
+        holder.textViewPrice.setPaintFlags(
+                holder.textViewPrice.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG
+        );
+
+        // Nút cộng
+        holder.buttonPlus.setOnClickListener(v -> {
+            item.setQuantity(item.getQuantity() + 1);
+            holder.textViewQuantity.setText(String.valueOf(item.getQuantity()));
+            holder.textViewTotal.setText("Tổng: ₫" + df.format(item.getTotalPrice()));
+            onCartChanged.run();
         });
 
-        // Xử lý sự kiện click riêng cho button trong item
-        holder.buttonAction.setOnClickListener(v -> {
-            Toast.makeText(mContext, "Action on: " + item.getTitle(), Toast.LENGTH_SHORT).show();
+        // Nút trừ
+        holder.buttonMinus.setOnClickListener(v -> {
+            if (item.getQuantity() > 1) {
+                item.setQuantity(item.getQuantity() - 1);
+                holder.textViewQuantity.setText(String.valueOf(item.getQuantity()));
+                holder.textViewTotal.setText("Tổng: ₫" + df.format(item.getTotalPrice()));
+                onCartChanged.run();
+            }
         });
+
+        // Nút mua
+        holder.buttonBuy.setOnClickListener(v ->
+                Toast.makeText(mContext, "Đã mua: " + item.getTitle(), Toast.LENGTH_SHORT).show()
+        );
     }
 
     @Override
@@ -52,16 +81,22 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.ViewHolder> {
         return mItems.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageViewIcon;
-        TextView textViewTitle;
-        Button buttonAction;
+    public static class ViewHolder extends RecyclerView.ViewHolder {
+        ImageView imageViewIcon, buttonPlus, buttonMinus; // ✅ ImageView thay vì Button
+        TextView textViewTitle, textViewPrice, textViewDiscount, textViewQuantity, textViewTotal;
+        Button buttonBuy; // nút mua vẫn là Button
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             imageViewIcon = itemView.findViewById(R.id.imageViewIcon);
             textViewTitle = itemView.findViewById(R.id.textViewTitle);
-            buttonAction = itemView.findViewById(R.id.buttonAction);
+            textViewPrice = itemView.findViewById(R.id.textViewPrice);
+            textViewDiscount = itemView.findViewById(R.id.textViewDiscount);
+            textViewQuantity = itemView.findViewById(R.id.textViewQuantity);
+            textViewTotal = itemView.findViewById(R.id.textViewTotal);
+            buttonPlus = itemView.findViewById(R.id.buttonPlus);
+            buttonMinus = itemView.findViewById(R.id.buttonMinus);
+            buttonBuy = itemView.findViewById(R.id.buttonBuy);
         }
     }
 }
